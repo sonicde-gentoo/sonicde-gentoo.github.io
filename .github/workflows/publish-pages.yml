@@ -1,0 +1,52 @@
+# SPDX-License-Identifier: AGPL-3.0-only
+# SPDX-FileCopyrightText: 2026 callmetango for SonicDE.org
+
+name: Build Jekyll site
+on:
+  - push
+  - workflow_dispatch
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+jobs:
+  build:
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Checkout content repository
+        uses: actions/checkout@v6
+        with:
+          repository: ${{ vars.WEBSITE_CONTENT_REPO }}
+          path: _content
+
+      - name: Checkout template repository
+        uses: actions/checkout@v6
+        with:
+          path: _templates
+
+      - name: Merge content and templates
+        run: |
+          rm -rf _content/.git* _templates/.git*
+          cp -af _templates/* ./
+          cp -af _content/* ./
+          rm -rf _content _templates
+
+      - name: Setup Pages
+        uses: actions/configure-pages@v5
+      - name: Build
+        uses: actions/jekyll-build-pages@v1
+      - name: Upload artifact
+        uses: actions/upload-pages-artifact@v3
+
+  deploy:
+    runs-on: ubuntu-24.04
+    needs: build
+    steps:
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
